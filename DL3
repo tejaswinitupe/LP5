@@ -1,131 +1,54 @@
-# TensorFlow and tf.keras
-import tensorflow as tf
-
-# Helper libraries
+import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-import pandas as pd
+import tensorflow as tf
+from tensorflow.keras.layers import Dense,Dropout,MaxPooling2D,Conv2D,Flatten
+from tensorflow.keras.datasets import fashion_mnist
+from tensorflow.keras.models import Sequential
 
-print(tf.__version__)
-fashion_mnist = tf.keras.datasets.fashion_mnist
+(x_train, y_train) ,(x_test,y_test) = fashion_mnist.load_data()
 
-(train_images, train_labels), (test_images, test_labels) = fashion_mnist.load_data()
+class_lables =["T-shirt/Top","Trouser","pullover","Dress","coat","Sneaker","Shirt","Sandle","Bag","Ankle boot",]
+class_lables
+
+plt.imshow(x_train[0],cmap="Blues")
+
+x_train=x_train/255.0
+x_test=x_test/255.0
+y_train=tf.keras.utils.to_categorical(y_train,num_classes=10)
+y_test=tf.keras.utils.to_categorical(y_test,num_classes=10)
+
+model=Sequential()
+model.add(Conv2D(32,(3,3), activation ='relu', input_shape=(28, 28, 1)))
+model.add(MaxPooling2D((2,2)))
+model.add(Conv2D(64,(3,3), activation='relu'))
+model.add(MaxPooling2D((2,2)))
+model.add(Flatten())
+model.add(Dense(10, activation='relu'))
+model.add(Dropout(0.5))
+model.add(Dense(10, activation ='softmax'))
+model.add(Dropout(0.5))
 
 
-class_names = ['T-shirt/top', 'Trouser', 'Pullover', 'Dress', 'Coat',
-               'Sandal', 'Shirt', 'Sneaker', 'Bag', 'Ankle boot']
-train_images.shape
-len(train_labels)
-train_labels
-test_images.shape
-len(test_labels)
-plt.figure()
-plt.imshow(train_images[0])
-plt.colorbar()
-plt.grid(False)
-plt.show()
-train_images = train_images / 255.0
+model.compile(optimizer='adam',loss='categorical_crossentropy',metrics=['accuracy'])
 
-test_images = test_images / 255.0
-plt.figure(figsize=(10,10))
-for i in range(25):
-    plt.subplot(5,5,i+1)
-    plt.xticks([])
-    plt.yticks([])
-    plt.grid(False)
-    plt.imshow(train_images[i], cmap=plt.cm.binary)
-    plt.xlabel(class_names[train_labels[i]])
-plt.show()
+model.fit(x_train,y_train ,epochs=10,batch_size=128 , validation_data=(x_test, y_test))
 
-model = tf.keras.Sequential([
-    tf.keras.layers.Flatten(input_shape=(28, 28)),
-    tf.keras.layers.Dense(128, activation='relu'),
-    tf.keras.layers.Dense(10)
-])
-model.compile(optimizer='adam',
-              loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
-              metrics=['accuracy'])
-model.fit(train_images, train_labels, epochs=20)
+y_pred=model.predict(x_test)
 
-test_loss, test_acc = model.evaluate(test_images,  test_labels, verbose=2)
+loss, accuracy =model.evaluate(x_test,y_test)
+print(f"Test loss : {loss:.4f}")
+print(f"Test accuracy : {accuracy:.4f}")
 
-print('\nTest accuracy:', test_acc)
-probability_model = tf.keras.Sequential([model, 
-                                         tf.keras.layers.Softmax()])
-predictions = probability_model.predict(test_images)
-predictions[0]
-np.argmax(predictions[0])
-test_labels[0]
-def plot_image(i, predictions_array, true_label, img):
-  true_label, img = true_label[i], img[i]
-  plt.grid(False)
-  plt.xticks([])
-  plt.yticks([])
 
-  plt.imshow(img, cmap=plt.cm.binary)
-
-  predicted_label = np.argmax(predictions_array)
-  if predicted_label == true_label:
-    color = 'blue'
-  else:
-    color = 'red'
-
-  plt.xlabel("{} {:2.0f}% ({})".format(class_names[predicted_label],
-                                100*np.max(predictions_array),
-                                class_names[true_label]),
-                                color=color)
-
-def plot_value_array(i, predictions_array, true_label):
-  true_label = true_label[i]
-  plt.grid(False)
-  plt.xticks(range(10))
-  plt.yticks([])
-  thisplot = plt.bar(range(10), predictions_array, color="#777777")
-  plt.ylim([0, 1])
-  predicted_label = np.argmax(predictions_array)
-
-  thisplot[predicted_label].set_color('red')
-  thisplot[true_label].set_color('blue')
-i = 0
-plt.figure(figsize=(6,3))
-plt.subplot(1,2,1)
-plot_image(i, predictions[i], test_labels, test_images)
-plt.subplot(1,2,2)
-plot_value_array(i, predictions[i],  test_labels)
-plt.show()
-i = 12
-plt.figure(figsize=(6,3))
-plt.subplot(1,2,1)
-plot_image(i, predictions[i], test_labels, test_images)
-plt.subplot(1,2,2)
-plot_value_array(i, predictions[i],  test_labels)
-plt.show()
-# Plot the first X test images, their predicted labels, and the true labels.
-# Color correct predictions in blue and incorrect predictions in red.
-num_rows = 5
-num_cols = 3
-num_images = num_rows*num_cols
-plt.figure(figsize=(2*2*num_cols, 2*num_rows))
-for i in range(num_images):
-  plt.subplot(num_rows, 2*num_cols, 2*i+1)
-  plot_image(i, predictions[i], test_labels, test_images)
-  plt.subplot(num_rows, 2*num_cols, 2*i+2)
-  plot_value_array(i, predictions[i], test_labels)
-plt.tight_layout()
-plt.show()
-# Grab an image from the test dataset.
-img = test_images[1]
-
-print(img.shape)
-# Add the image to a batch where it's the only member.
-img = (np.expand_dims(img,0))
-
-print(img.shape)
-predictions_single = probability_model.predict(img)
-
-print(predictions_single)
-plot_value_array(1, predictions_single[0], test_labels)
-_ = plt.xticks(range(10), class_names, rotation=45)
-plt.show()
-np.argmax(predictions_single[0])
-
+num_sam=5
+print(f"out")
+for i in range(num_sam):
+  image=x_test[i]
+  predicted_probs=model.predict(np.expand_dims(image, axis=0))
+  predicted_lable=np.argmax(predicted_probs)
+  class_name=class_lables[predicted_lable]
+  print(f"image: {i+1} : predicted : {class_name}")
+  
+  
+  
